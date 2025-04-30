@@ -1,6 +1,6 @@
 # azurevelo
 
-This project deploys a Velociraptor container on Azure App Service for Incident Response
+This project deploys a Velociraptor container on Azure App Service for Incident Response investigations. 
 
 <img src="./media/azurevelo.png" alt="azurevelo" width="300"/>
 
