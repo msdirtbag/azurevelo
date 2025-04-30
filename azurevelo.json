@@ -1,0 +1,288 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.35.1.17967",
+      "templateHash": "7650264043314680617"
+    }
+  },
+  "parameters": {
+    "env": {
+      "type": "string",
+      "metadata": {
+        "description": "Chose a variable for the environment. Example: dev, test, soc"
+      }
+    },
+    "velopassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Chose a root password for the veloadmin account"
+      }
+    }
+  },
+  "variables": {
+    "blobrole": "/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe",
+    "environmentid": "[uniqueString(subscription().id, resourceGroup().id, tenant().tenantId, parameters('env'))]",
+    "location": "[resourceGroup().location]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "apiVersion": "2024-11-30",
+      "name": "[format('umi-azurevelo-{0}', variables('environmentid'))]",
+      "location": "[variables('location')]"
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(variables('environmentid'), variables('blobrole'), subscription().id)]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]",
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('umi-azurevelo-{0}', variables('environmentid'))), '2024-11-30').principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('umi-azurevelo-{0}', variables('environmentid')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2024-01-01",
+      "name": "[format('stazurevelo{0}', variables('environmentid'))]",
+      "location": "[variables('location')]",
+      "identity": {
+        "type": "UserAssigned",
+        "userAssignedIdentities": {
+          "[format('{0}', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('umi-azurevelo-{0}', variables('environmentid'))))]": {}
+        }
+      },
+      "kind": "StorageV2",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "properties": {
+        "encryption": {
+          "keySource": "Microsoft.Storage",
+          "requireInfrastructureEncryption": true,
+          "services": {
+            "blob": {
+              "enabled": true
+            },
+            "file": {
+              "enabled": true
+            },
+            "queue": {
+              "enabled": true,
+              "keyType": "Service"
+            },
+            "table": {
+              "enabled": true,
+              "keyType": "Service"
+            }
+          }
+        },
+        "allowBlobPublicAccess": false,
+        "supportsHttpsTrafficOnly": true,
+        "publicNetworkAccess": "Enabled",
+        "minimumTlsVersion": "TLS1_2"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('umi-azurevelo-{0}', variables('environmentid')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/fileServices",
+      "apiVersion": "2024-01-01",
+      "name": "[format('{0}/{1}', format('stazurevelo{0}', variables('environmentid')), 'default')]",
+      "properties": {
+        "shareDeleteRetentionPolicy": {
+          "days": 7,
+          "enabled": true
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', format('stazurevelo{0}', variables('environmentid')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
+      "apiVersion": "2024-01-01",
+      "name": "[format('{0}/{1}/{2}', format('stazurevelo{0}', variables('environmentid')), 'default', 'artifacts')]",
+      "properties": {
+        "accessTier": "TransactionOptimized",
+        "enabledProtocols": "SMB"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/fileServices', format('stazurevelo{0}', variables('environmentid')), 'default')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
+      "apiVersion": "2024-01-01",
+      "name": "[format('{0}/{1}/{2}', format('stazurevelo{0}', variables('environmentid')), 'default', 'datastore')]",
+      "properties": {
+        "accessTier": "Hot",
+        "enabledProtocols": "SMB"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/fileServices', format('stazurevelo{0}', variables('environmentid')), 'default')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
+      "apiVersion": "2024-01-01",
+      "name": "[format('{0}/{1}/{2}', format('stazurevelo{0}', variables('environmentid')), 'default', 'filestore')]",
+      "properties": {
+        "accessTier": "Hot",
+        "enabledProtocols": "SMB"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/fileServices', format('stazurevelo{0}', variables('environmentid')), 'default')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
+      "apiVersion": "2024-01-01",
+      "name": "[format('{0}/{1}/{2}', format('stazurevelo{0}', variables('environmentid')), 'default', 'logs')]",
+      "properties": {
+        "accessTier": "TransactionOptimized",
+        "enabledProtocols": "SMB"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/fileServices', format('stazurevelo{0}', variables('environmentid')), 'default')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2024-04-01",
+      "name": "[format('asp-azurevelo-{0}', variables('environmentid'))]",
+      "location": "[variables('location')]",
+      "properties": {
+        "reserved": true,
+        "elasticScaleEnabled": false
+      },
+      "sku": {
+        "tier": "PremiumV3",
+        "name": "P0v3"
+      },
+      "kind": "linux"
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2022-09-01",
+      "name": "[format('ase-azurevelo-{0}', variables('environmentid'))]",
+      "location": "[variables('location')]",
+      "kind": "container",
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', format('asp-azurevelo-{0}', variables('environmentid')))]",
+        "publicNetworkAccess": "Enabled",
+        "httpsOnly": true,
+        "siteConfig": {
+          "linuxFxVersion": "DOCKER|msdirtbag/velo:latest",
+          "numberOfWorkers": 1,
+          "requestTracingEnabled": false,
+          "remoteDebuggingEnabled": false,
+          "httpLoggingEnabled": true,
+          "logsDirectorySizeLimit": 35,
+          "detailedErrorLoggingEnabled": true,
+          "webSocketsEnabled": true,
+          "alwaysOn": true,
+          "autoHealEnabled": true,
+          "ipSecurityRestrictions": [
+            {
+              "ipAddress": "Any",
+              "action": "Allow",
+              "priority": 2147483647,
+              "name": "Allow all",
+              "description": "Allow all access"
+            }
+          ],
+          "scmIpSecurityRestrictions": [
+            {
+              "ipAddress": "Any",
+              "action": "Deny",
+              "priority": 2147483647,
+              "name": "Block all",
+              "description": "Block all access"
+            }
+          ],
+          "scmIpSecurityRestrictionsUseMain": false,
+          "http20Enabled": false,
+          "minTlsVersion": "1.2",
+          "scmMinTlsVersion": "1.2",
+          "ftpsState": "Disabled",
+          "minimumElasticInstanceCount": 1
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', format('asp-azurevelo-{0}', variables('environmentid')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Web/sites/config",
+      "apiVersion": "2022-09-01",
+      "name": "[format('{0}/{1}', format('ase-azurevelo-{0}', variables('environmentid')), 'appsettings')]",
+      "kind": "calappsettings",
+      "properties": {
+        "WEBSITES_ENABLE_APP_SERVICE_STORAGE": "true",
+        "VELOX_FRONTEND_HOSTNAME": "[reference(resourceId('Microsoft.Web/sites', format('ase-azurevelo-{0}', variables('environmentid'))), '2022-09-01').defaultHostName]",
+        "VELOX_PASSWORD": "[parameters('velopassword')]",
+        "VELOX_ROLE": "administrator",
+        "VELOX_SERVER_URL": "[format('wss://{0}/', reference(resourceId('Microsoft.Web/sites', format('ase-azurevelo-{0}', variables('environmentid'))), '2022-09-01').defaultHostName)]",
+        "VELOX_USER": "veloadmin",
+        "WEBSITE_HTTPLOGGING_RETENTION_DAYS": "30",
+        "WEBSITES_PORT": "8000"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', format('ase-azurevelo-{0}', variables('environmentid')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Web/sites/config",
+      "apiVersion": "2024-04-01",
+      "name": "[format('{0}/{1}', format('ase-azurevelo-{0}', variables('environmentid')), 'web')]",
+      "properties": {
+        "azureStorageAccounts": {
+          "artifacts": {
+            "type": "AzureFiles",
+            "accountName": "[format('stazurevelo{0}', variables('environmentid'))]",
+            "accessKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', format('stazurevelo{0}', variables('environmentid'))), '2024-01-01').keys[0].value]",
+            "shareName": "artifacts",
+            "mountPath": "/mnt/artifacts",
+            "protocol": "Smb"
+          },
+          "datastore": {
+            "type": "AzureFiles",
+            "accountName": "[format('stazurevelo{0}', variables('environmentid'))]",
+            "accessKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', format('stazurevelo{0}', variables('environmentid'))), '2024-01-01').keys[0].value]",
+            "shareName": "datastore",
+            "mountPath": "/mnt/datastore",
+            "protocol": "Smb"
+          },
+          "filestore": {
+            "type": "AzureFiles",
+            "accountName": "[format('stazurevelo{0}', variables('environmentid'))]",
+            "accessKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', format('stazurevelo{0}', variables('environmentid'))), '2024-01-01').keys[0].value]",
+            "shareName": "filestore",
+            "mountPath": "/mnt/filestore",
+            "protocol": "Smb"
+          },
+          "logs": {
+            "type": "AzureFiles",
+            "accountName": "[format('stazurevelo{0}', variables('environmentid'))]",
+            "accessKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', format('stazurevelo{0}', variables('environmentid'))), '2024-01-01').keys[0].value]",
+            "shareName": "logs",
+            "mountPath": "/mnt/logs",
+            "protocol": "Smb"
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', format('ase-azurevelo-{0}', variables('environmentid')))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', format('stazurevelo{0}', variables('environmentid')))]"
+      ]
+    }
+  ]
+}
