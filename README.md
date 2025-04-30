@@ -2,7 +2,7 @@
 
 This project deploys a Velociraptor container on Azure App Service for Incident Response
 
-![azurevelo](./media/azurevelo.png)
+<img src="./media/azurevelo.png" alt="azurevelo" width="300"/>
 
 ## What is Velociraptor?
 
