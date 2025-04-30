@@ -2,6 +2,8 @@
 
 This project deploys a Velociraptor container on Azure App Service for Incident Response
 
+![azurevelo](./media/azurevelo.png)
+
 ## What is Velociraptor?
 
 **Velociraptor** is a powerful, open-source endpoint visibility and digital forensics tool. Designed for incident response, Velociraptor enables security professionals to hunt for threats, collect forensic evidence, and perform investigations at scale across Windows, Linux, and macOS systems.
@@ -29,21 +31,19 @@ This project deploys the following Azure resource types:
 - User Managed Identity
 - Azure Storage Account
 
-...
-
 ## Deployment
 
 1. Hit the blue "Deploy" button below.
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmsdirtbag%2FMicrosoftPurpleTeamToolkit%2Fmain%2Fpurpleops-ASE%2Fpurpleopsase.json)
+   [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmsdirtbag%2Fazurevelo%2Frefs%2Fheads%2Fmain%2Fazurevelo.json)
 
 2. Specify your Azure Subscription and Resource Group.
 
-   ![Auth](./media/deploy.png)
+   ![Deploy](./media/deploy.png)
 
 3. Critical! Configure Authentication on the Azure App Service so Entra ID auth is required before Velociraptor users see the Velociraptor login page. 
 
-![Auth](./media/auth.png)
+   ![Auth](./media/auth.png)
 
 ---
 
@@ -59,7 +59,7 @@ Azure Front Door natively supports websockets and removes the SSL decryption wor
 
 Option # 2 - Scaling up the App Service Plan
 
-![Scale](./media/scale.png)
+![Scale](./media/scaleup.png)
 
 ---
 
