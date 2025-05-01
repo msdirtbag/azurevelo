@@ -37,9 +37,11 @@ This project deploys the following Azure resource types:
 
    [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmsdirtbag%2Fazurevelo%2Frefs%2Fheads%2Fmain%2Fazurevelo.json)
 
-2. Specify your Azure Subscription and Resource Group.
+2. Specify your Azure Subscription, Resource Group, root password, and environment variable. The environment variable is leveraged to create a globally unique Azure App Service. 
 
    ![Deploy](./media/deploy.png)
+
+   
 
 3. Critical! Configure Authentication on the Azure App Service so Entra ID auth is required before Velociraptor users see the Velociraptor login page. 
 
