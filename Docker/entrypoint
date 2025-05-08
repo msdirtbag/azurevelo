@@ -1,0 +1,68 @@
+#!/bin/bash
+set -e
+BIND_ADDRESS="0.0.0.0"
+PUBLIC_PATH="public"
+LOG_DIR="/mnt/logs"
+DATASTORE_LOCATION="/mnt/datastore"
+FILESTORE_DIRECTORY="/mnt/filestore"
+CLIENT_DIR="/velociraptor/clients"
+WORKDIR="/velociraptor"
+
+# Move binaries into place
+cp /opt/velociraptor/linux/velociraptor . && chmod +x velociraptor
+mkdir -p $CLIENT_DIR/linux && rsync -a /opt/velociraptor/linux/velociraptor /velociraptor/clients/linux/velociraptor_client
+mkdir -p $CLIENT_DIR/mac && rsync -a /opt/velociraptor/mac/velociraptor_client /velociraptor/clients/mac/velociraptor_client
+mkdir -p $CLIENT_DIR/windows && rsync -a /opt/velociraptor/windows/velociraptor_client* /velociraptor/clients/windows/
+
+# Ensure the working directory exists
+mkdir -p $WORKDIR
+
+if [ ! -f "$WORKDIR/server.config.yaml" ]; then
+    ./velociraptor config generate > "$WORKDIR/server.config.yaml" --merge '{"Frontend":{"public_path":"'$PUBLIC_PATH'", "hostname":"'$VELOX_FRONTEND_HOSTNAME'", "use_plain_http":true, "bind_port":8000},"API":{"bind_address":"'$BIND_ADDRESS'"},"GUI":{"bind_address":"'$BIND_ADDRESS'", "use_plain_http":true, "bind_port":8000},"Monitoring":{"bind_address":"'$BIND_ADDRESS'"},"Logging":{"output_directory":"'$LOG_DIR'","separate_logs_per_component":true},"Client":{"server_urls":["'$VELOX_SERVER_URL'"],"use_self_signed_ssl":false}, "Datastore":{"location":"'$DATASTORE_LOCATION'", "filestore_directory":"'$FILESTORE_DIRECTORY'"}}'
+    sed -i 's#/tmp/velociraptor#.#'g "$WORKDIR/server.config.yaml"
+    ./velociraptor --config "$WORKDIR/server.config.yaml" user add $VELOX_USER $VELOX_PASSWORD --role $VELOX_ROLE
+fi
+
+# Check Server Certificate Status, Re-generate if it's expiring in 24-hours or less
+if true | ./velociraptor --config "$WORKDIR/server.config.yaml" config show --json | jq -r .Frontend.certificate | openssl x509 -text -enddate -noout -checkend 86400 >/dev/null; then
+  echo "Skipping renewal, certificate is not expired"
+else
+  echo "Certificate is expired, rotating certificate."
+  ./velociraptor --config "$WORKDIR/server.config.yaml" config rotate_key > /tmp/server.config.yaml
+  cp "$WORKDIR/server.config.yaml" "$WORKDIR/server.config.yaml.bak"
+  mv /tmp/server.config.yaml "$WORKDIR/server.config.yaml"
+fi
+
+# Re-generate client config without using --merge
+echo "Generating client configuration..."
+./velociraptor --config "$WORKDIR/server.config.yaml" config client > "$WORKDIR/client.config.yaml"
+
+# Repack clients
+./velociraptor config repack --exe "$CLIENT_DIR/linux/velociraptor_client" "$WORKDIR/client.config.yaml" "$CLIENT_DIR/linux/velociraptor_client_repacked"
+./velociraptor --config "$WORKDIR/client.config.yaml" debian client --output "$CLIENT_DIR/linux/velociraptor_client_repacked.deb"
+./velociraptor --config "$WORKDIR/client.config.yaml" rpm client --output "$CLIENT_DIR/linux/velociraptor_client_repacked.rpm"
+./velociraptor config repack --exe "$CLIENT_DIR/mac/velociraptor_client" "$WORKDIR/client.config.yaml" "$CLIENT_DIR/mac/velociraptor_client_repacked"
+./velociraptor config repack --exe "$CLIENT_DIR/windows/velociraptor_client.exe" "$WORKDIR/client.config.yaml" "$CLIENT_DIR/windows/velociraptor_client_repacked.exe"
+./velociraptor config repack --msi "$CLIENT_DIR/windows/velociraptor_client.msi" "$WORKDIR/client.config.yaml" "$CLIENT_DIR/windows/velociraptor_client_repacked.msi"
+
+# Create the 'velociraptor' user if it doesn't exist
+echo "Creating Velociraptor user..."
+if ! id -u velociraptor > /dev/null 2>&1; then
+  useradd -m -s /bin/bash velociraptor
+fi
+
+# Ensure the necessary directories exist and set the correct permissions
+echo "Setting Velociraptor permissions..."
+for DIR in $CLIENT_DIR $DATASTORE_LOCATION $LOG_DIR; do
+  echo "Creating directory $DIR if it doesn't exist..."
+  mkdir -p $DIR
+  echo "Setting ownership of $DIR to velociraptor:velociraptor..."
+  chown -R velociraptor:velociraptor $DIR
+  if [ $? -ne 0 ]; then
+    echo "Failed to set ownership for $DIR"
+    exit 1
+  fi
+done
+
+# Start Velociraptor as the 'velociraptor' user with runtime configuration override
+sudo -u velociraptor ./velociraptor --config "$WORKDIR/server.config.yaml" frontend -v
