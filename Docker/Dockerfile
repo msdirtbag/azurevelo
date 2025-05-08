@@ -1,4 +1,3 @@
-# filepath: d:\velociraptor-docker-master\Dockerfile
 FROM ubuntu:22.04
 LABEL version="Velociraptor v0.73.4"
 COPY ./entrypoint .
