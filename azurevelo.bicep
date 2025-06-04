@@ -152,7 +152,7 @@ resource appservice 'Microsoft.Web/sites@2022-09-01' = {
     publicNetworkAccess: 'Enabled'
     httpsOnly: true
     siteConfig: {
-      linuxFxVersion: 'DOCKER|ghcr.io/msdirtbag/azurevelo:latest'
+      linuxFxVersion: 'DOCKER|ghcr.io/msdirtbag/azurevelo'
       numberOfWorkers: 1
       requestTracingEnabled: false
       remoteDebuggingEnabled: false
