@@ -1,5 +1,5 @@
 //azurevelo
-//Version: 0.1.0
+//Version: 0.1.1
 //Author: msdirtbag
 
 //Scope
@@ -152,7 +152,7 @@ resource appservice 'Microsoft.Web/sites@2022-09-01' = {
     publicNetworkAccess: 'Enabled'
     httpsOnly: true
     siteConfig: {
-      linuxFxVersion: 'DOCKER|msdirtbag/velo:latest'
+      linuxFxVersion: 'DOCKER|ghcr.io/msdirtbag/azurevelo:latest'
       numberOfWorkers: 1
       requestTracingEnabled: false
       remoteDebuggingEnabled: false
